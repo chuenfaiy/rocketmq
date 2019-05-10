@@ -95,6 +95,7 @@ public class PullAPIWrapper {
                 this.executeHook(filterMessageContext);
             }
 
+            // Tag过滤是在客户端进行的
             for (MessageExt msg : msgListFilterAgain) {
                 String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (traFlag != null && Boolean.parseBoolean(traFlag)) {

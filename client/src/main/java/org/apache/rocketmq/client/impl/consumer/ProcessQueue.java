@@ -35,7 +35,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 /**
- * Queue consumption snapshot
+ * Queue consumption snapshot，是MessageQueue在消费端的快照
  */
 public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
@@ -51,7 +51,7 @@ public class ProcessQueue {
     /**
      * A subset of msgTreeMap, will only be used when orderly consume
      */
-    private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
+    private final TreeMap<Long/* consume queue offset */, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
     private volatile long queueOffsetMax = 0L;
     private volatile boolean dropped = false;

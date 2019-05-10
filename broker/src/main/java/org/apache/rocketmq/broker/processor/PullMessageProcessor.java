@@ -405,8 +405,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     break;
                 case ResponseCode.PULL_NOT_FOUND:
 
+                    // 如果broker开启`支持挂起`，则如果消息未到直接给客户端返回PULL_NOT_FOUND
                     if (brokerAllowSuspend && hasSuspendFlag) {
+
+                        // 默认挂起时间来自客户端
                         long pollingTimeMills = suspendTimeoutMillisLong;
+
+                        // 对于短轮询，broker会等待shortPollingTimeMills后再去判断消息
                         if (!this.brokerController.getBrokerConfig().isLongPollingEnable()) {
                             pollingTimeMills = this.brokerController.getBrokerConfig().getShortPollingTimeMills();
                         }

@@ -69,8 +69,9 @@ public class PullRequestHoldService extends ServiceThread {
         while (!this.isStopped()) {
             try {
                 if (this.brokerController.getBrokerConfig().isLongPollingEnable()) {
-                    this.waitForRunning(5 * 1000);
+                    this.waitForRunning(5 * 1000);  // 开启长轮询的话，每5s尝试一次
                 } else {
+                    // 否则默认等待1s
                     this.waitForRunning(this.brokerController.getBrokerConfig().getShortPollingTimeMills());
                 }
 
@@ -128,6 +129,7 @@ public class PullRequestHoldService extends ServiceThread {
                         newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     }
 
+                    // 如果新offset大于请求的offset，说明有消息到达
                     if (newestOffset > request.getPullFromThisOffset()) {
                         boolean match = request.getMessageFilter().isMatchedByConsumeQueue(tagsCode,
                             new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap));

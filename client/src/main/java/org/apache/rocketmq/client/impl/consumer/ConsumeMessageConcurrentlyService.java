@@ -236,6 +236,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
     }
 
+    /**
+     * RocketMQ将消息存入commitlog文件时，如果发现消息的延时级别 delayTimeLevel大于 0，
+     * 会首先将重试主题存人在消息的属性中，然后设置主题名称为SCHEDULE_TOPIC，以便时间到 后重新参与消息消费
+     *
+     * @param msgs
+     */
     public void resetRetryTopic(final List<MessageExt> msgs) {
         final String groupTopic = MixAll.getRetryTopic(consumerGroup);
         for (MessageExt msg : msgs) {
@@ -294,15 +300,19 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 break;
             case CLUSTERING:
                 List<MessageExt> msgBackFailed = new ArrayList<MessageExt>(consumeRequest.getMsgs().size());
+
+                // 如果消息都消费成功(业务层返回CONSUME_SUCCESS)，则意味着 ackIndex + 1 == consumeRequest.getMsgs().size()，即不需要执行如下步骤
+                // 如果消息消费失败(业务层返回RECONSUME_LATER)，则ackIndex + 1 == 0，需要执行以下逻辑
                 for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                     MessageExt msg = consumeRequest.getMsgs().get(i);
-                    boolean result = this.sendMessageBack(msg, context);
+                    boolean result = this.sendMessageBack(msg, context); // 将失败消息发送到broker，broker会生成一条新的msgId
                     if (!result) {
                         msg.setReconsumeTimes(msg.getReconsumeTimes() + 1);
                         msgBackFailed.add(msg);
                     }
                 }
 
+                // 如果反馈消息失败，则延迟5s后，重新提交给业务线程池消费
                 if (!msgBackFailed.isEmpty()) {
                     consumeRequest.getMsgs().removeAll(msgBackFailed);
 
@@ -313,8 +323,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 break;
         }
 
+        // 对于消费失败消息，由于会反馈到broker并生成新的msgId，客户端会以新的offset重新拉取消息并消费，所以这里需要把消息删除
+        // 反馈失败的消息不删除！
+        // offset是移除该批消息后的最小偏移量
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
         if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+            // 更新消费位点
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);
         }
     }

@@ -89,6 +89,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
      * Delay some time when suspend pull service
      */
     private static final long PULL_TIME_DELAY_MILLS_WHEN_SUSPEND = 1000;
+
+    // 如果broker支持长轮询模式，则挂起超时时间默认值由客户端决定
     private static final long BROKER_SUSPEND_MAX_TIME_MILLIS = 1000 * 15;
     private static final long CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND = 1000 * 30;
     private final InternalLogger log = ClientLogger.getLog();
@@ -222,6 +224,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         long cachedMessageCount = processQueue.getMsgCount().get();
         long cachedMessageSizeInMiB = processQueue.getMsgSize().get() / (1024 * 1024);
 
+        // 处理消息拉去流控，从消息消费数量与消费间隔两个维度进行控制
         if (cachedMessageCount > this.defaultMQPushConsumer.getPullThresholdForQueue()) {
             this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL);
             if ((queueFlowControlTimes++ % 1000) == 0) {
@@ -243,6 +246,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         if (!this.consumeOrderly) {
+            // 从消费间隔维度进行流量控制
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
                 this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_FLOW_CONTROL);
                 if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
@@ -300,6 +304,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                 pullRequest.getMessageQueue().getTopic(), pullRT);
 
                             long firstMsgOffset = Long.MAX_VALUE;
+
+                            // RocketMQ对Tag进行消息过滤时，在服务端只是验证了Tag的hashcode，在客户端会再次进行tag的比对，所以
+                            // 会出现消息为空的情况
                             if (pullResult.getMsgFoundList() == null || pullResult.getMsgFoundList().isEmpty()) {
                                 DefaultMQPushConsumerImpl.this.executePullRequestImmediately(pullRequest);
                             } else {
@@ -315,6 +322,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                     pullRequest.getMessageQueue(),
                                     dispatchToConsume);
 
+                                // 根据拉取间隔来确定下次拉取任务，这样拉取任务就不断进行下去了
                                 if (DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval() > 0) {
                                     DefaultMQPushConsumerImpl.this.executePullRequestLater(pullRequest,
                                         DefaultMQPushConsumerImpl.this.defaultMQPushConsumer.getPullInterval());

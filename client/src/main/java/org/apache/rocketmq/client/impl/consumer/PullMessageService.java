@@ -79,6 +79,7 @@ public class PullMessageService extends ServiceThread {
     private void pullMessage(final PullRequest pullRequest) {
         final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
+            // 由此看出，PullMessageService只为PushConsumer服务
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
             impl.pullMessage(pullRequest);
         } else {
@@ -92,6 +93,9 @@ public class PullMessageService extends ServiceThread {
 
         while (!this.isStopped()) {
             try {
+                // 有两个地方会在pullRequestQueue的添加新的请求：
+                // 一个是在 RocketMQ根据 PullRequest拉取任 务执行完一次消息拉取任务后，又将 PullRequest对象放入到 pullRequestQueue，
+                // 第二个是 在 Rebalanccelmpl 中创建
                 PullRequest pullRequest = this.pullRequestQueue.take();
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {
