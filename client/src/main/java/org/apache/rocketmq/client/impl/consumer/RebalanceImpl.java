@@ -329,7 +329,7 @@ public abstract class RebalanceImpl {
     }
 
     /**
-     * 主要思路是遍历当前负载队列集合，如果队列不在新分 配队列集合中，需要将该队列停止消费并保存消费进度;
+     * 主要思路是遍历当前负载队列集合，如果队列不在新分配队列集合中，需要将该队列停止消费并保存消费进度;
      * 遍历已分配的队列，如果队列不在队列负载表中( processQueueTable) 则需要创建该队列拉取任务 PullRequest，
      * 然后添加到PullMessageService线程的pullRequestQueue中，PulIMessageService才会继续拉取任务。
      *
