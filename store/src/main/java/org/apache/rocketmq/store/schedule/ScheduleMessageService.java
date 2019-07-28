@@ -103,6 +103,9 @@ public class ScheduleMessageService extends ConfigManager {
 
     public void start() {
 
+        // 每一个延迟级别都对应一个队列，每一个队列都有一个offset和定时任务
+        // 定时任务开始启动时延迟1s，后面按照真实的延迟消息进行
+        // 队列id = level - 1
         for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
             Integer level = entry.getKey();
             Long timeDelay = entry.getValue();
@@ -116,6 +119,7 @@ public class ScheduleMessageService extends ConfigManager {
             }
         }
 
+        // 定时进行数据持久化
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override
@@ -245,6 +249,7 @@ public class ScheduleMessageService extends ConfigManager {
 
             long failScheduleOffset = offset;
 
+            // 如果cq为空，表明不存在相应level的定时任务
             if (cq != null) {
                 SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
                 if (bufferCQ != null) {
@@ -277,6 +282,7 @@ public class ScheduleMessageService extends ConfigManager {
                             long countdown = deliverTimestamp - now;
 
                             if (countdown <= 0) {
+                                // 从commitLog查找消息
                                 MessageExt msgExt =
                                     ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
                                         offsetPy, sizePy);

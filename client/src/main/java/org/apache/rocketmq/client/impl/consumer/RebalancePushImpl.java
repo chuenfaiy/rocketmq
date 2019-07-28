@@ -148,6 +148,7 @@ public class RebalancePushImpl extends RebalanceImpl {
             case CONSUME_FROM_MAX_OFFSET:
             case CONSUME_FROM_LAST_OFFSET: {
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
+                log.info("compute pull from where, read offset: {}", lastOffset);
                 if (lastOffset >= 0) {
                     result = lastOffset;
                 }
@@ -158,6 +159,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                     } else {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                            log.info("compute pull from where, will consume from max offset: {}", lastOffset);
                         } catch (MQClientException e) {
                             result = -1;
                         }

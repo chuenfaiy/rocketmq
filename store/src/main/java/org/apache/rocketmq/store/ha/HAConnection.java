@@ -45,6 +45,8 @@ public class HAConnection {
         this.clientAddr = this.socketChannel.socket().getRemoteSocketAddress().toString();
         this.socketChannel.configureBlocking(false);
         this.socketChannel.socket().setSoLinger(false, -1);
+
+        // 关闭Nagle算法，确保数据可以立即发送出去
         this.socketChannel.socket().setTcpNoDelay(true);
         this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
         this.socketChannel.socket().setSendBufferSize(1024 * 64);

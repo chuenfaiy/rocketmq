@@ -175,7 +175,9 @@ public class HAService {
             this.selector = RemotingUtil.openSelector();
             this.serverSocketChannel.socket().setReuseAddress(true);
             this.serverSocketChannel.socket().bind(this.socketAddressListen);
+            // 使用NIO非阻塞模型，所以需要设置为false
             this.serverSocketChannel.configureBlocking(false);
+            // 注册接收请求事件
             this.serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
         }
 

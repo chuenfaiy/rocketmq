@@ -1748,13 +1748,17 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         private void doReput() {
+
+            // 只要转发offset小于commitLog的最大offset，就会一直执行
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
+                // reputFromOffset指从哪个物理偏移量转发给IndexFile和ConsumeQueue
                 if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
 
+                // 获取reputFromOffset之后的全部有效数据
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {

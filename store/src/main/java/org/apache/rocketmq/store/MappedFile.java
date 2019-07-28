@@ -143,6 +143,7 @@ public class MappedFile extends ReferenceResource {
         return TOTAL_MAPPED_VIRTUAL_MEMORY.get();
     }
 
+    // init存在两种机制：如果开启了transientStorePoolEnable，则表示内容先存在内存，然后通过commit线程提交到内存映射buffer，最后通过flush线程持久化到磁盘中
     public void init(final String fileName, final int fileSize,
         final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
@@ -319,15 +320,20 @@ public class MappedFile extends ReferenceResource {
         return this.committedPosition.get();
     }
 
+    // 实际的提交实现
     protected void commit0(final int commitLeastPages) {
         int writePos = this.wrotePosition.get();
         int lastCommittedPosition = this.committedPosition.get();
 
         if (writePos - this.committedPosition.get() > 0) {
             try {
+                // 创建子窗口
                 ByteBuffer byteBuffer = writeBuffer.slice();
                 byteBuffer.position(lastCommittedPosition);
                 byteBuffer.limit(writePos);
+
+                // 把lastCommittedPosition -> writePos之间的数据写到fileChannel
+                // fileChannel需要先更新写位置，确保从上次提交的位置开始
                 this.fileChannel.position(lastCommittedPosition);
                 this.fileChannel.write(byteBuffer);
                 this.committedPosition.set(writePos);
@@ -356,10 +362,13 @@ public class MappedFile extends ReferenceResource {
         int flush = this.committedPosition.get();
         int write = this.wrotePosition.get();
 
+        // 如果文件已满，则执行commit操作
         if (this.isFull()) {
             return true;
         }
 
+        // 通过当前写位置减去上次提交位置，来判断是否达到能够提交的最小页
+        // 所以当commitLeastPages设置成小于0时，表示只要存在脏页就提交
         if (commitLeastPages > 0) {
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= commitLeastPages;
         }

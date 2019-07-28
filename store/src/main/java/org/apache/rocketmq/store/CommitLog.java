@@ -542,7 +542,9 @@ public class CommitLog {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+
             // Delay Delivery
+            // 需要重新构建消息，并放到延迟队列中
             if (msg.getDelayTimeLevel() > 0) {
                 if (msg.getDelayTimeLevel() > this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
@@ -810,8 +812,10 @@ public class CommitLog {
         MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         if (mappedFile != null) {
             if (mappedFile.isAvailable()) {
+                // 计算当前文件的偏移量
                 return mappedFile.getFileFromOffset();
             } else {
+                // 获取下一个文件的偏移量
                 return this.rollNextFile(mappedFile.getFileFromOffset());
             }
         }

@@ -82,11 +82,13 @@ public class MappedFileQueue {
 
         for (int i = 0; i < mfs.length; i++) {
             MappedFile mappedFile = (MappedFile) mfs[i];
+            // 获取一个离timestamp最近的mapfile
             if (mappedFile.getLastModifiedTimestamp() >= timestamp) {
                 return mappedFile;
             }
         }
 
+        // 没有找到就返回最后一个
         return (MappedFile) mfs[mfs.length - 1];
     }
 
@@ -472,6 +474,7 @@ public class MappedFileQueue {
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
+                    // 先找到第几个文件
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {
@@ -479,11 +482,13 @@ public class MappedFileQueue {
                     } catch (Exception ignored) {
                     }
 
+                    // 如果offset正好是在cq首尾offset区间，说明找到了
                     if (targetFile != null && offset >= targetFile.getFileFromOffset()
                         && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
                         return targetFile;
                     }
 
+                    //
                     for (MappedFile tmpMappedFile : this.mappedFiles) {
                         if (offset >= tmpMappedFile.getFileFromOffset()
                             && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
@@ -492,6 +497,7 @@ public class MappedFileQueue {
                     }
                 }
 
+                // 如果没有找到则返回第一个mapfile
                 if (returnFirstOnNotFound) {
                     return firstMappedFile;
                 }
